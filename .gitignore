@@ -1,0 +1,49 @@
+# Maven
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+.project
+.classpath
+.settings/
+
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# SSL certificates (sensitive)
+certs/
+*.jks
+*.cer
+*.p12
+*.keystore
+truststore.jks
+
+# Build output
+/build/
+*.class
+
+# Test reports
+/test-output/
+
+# Misc
+*.class
+*.swp
+*.swo
+
+# Ignore local properties
+application-local.properties
