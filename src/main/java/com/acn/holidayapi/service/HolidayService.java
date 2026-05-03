@@ -4,6 +4,8 @@ import com.acn.holidayapi.client.NagerDateApiClient;
 import com.acn.holidayapi.dto.DeduplicatedHolidayDto;
 import com.acn.holidayapi.dto.HolidayResponseDto;
 import com.acn.holidayapi.model.Holiday;
+import com.acn.holidayapi.util.Constants;
+
 import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +28,7 @@ public class HolidayService {
         List<Holiday> allPastHolidays = new ArrayList<>();
 
         // Check current year and up to 2 previous years
-        for (int yearOffset = 0; yearOffset <= 2; yearOffset++) {
+        for (int yearOffset = 0; yearOffset <= Constants.MAX_YEARS_TO_CHECK; yearOffset++) {
             int year = today.getYear() - yearOffset;
 
             log.debug("Fetching holidays for {} in year {}", countryCode, year);
@@ -40,7 +42,7 @@ public class HolidayService {
             }
 
             // Stop early if we have enough
-            if (allPastHolidays.size() >= 3) {
+            if (allPastHolidays.size() >= Constants.LAST_HOLIDAYS_COUNT) {
                 break;
             }
         }
@@ -48,7 +50,7 @@ public class HolidayService {
         // Sort by date descending and take top 3
         return allPastHolidays.stream()
                 .sorted(Comparator.comparing(Holiday::getDate).reversed())
-                .limit(3)
+                .limit(Constants.LAST_HOLIDAYS_COUNT)
                 .map(h -> new HolidayResponseDto(h.getDate(), h.getLocalName(), h.getName(), h.getCountryCode()))
                 .collect(Collectors.toList());
     }
