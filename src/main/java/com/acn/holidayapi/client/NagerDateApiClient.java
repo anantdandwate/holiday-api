@@ -2,6 +2,8 @@ package com.acn.holidayapi.client;
 
 import com.acn.holidayapi.model.Holiday;
 import com.acn.holidayapi.exception.ApiException;
+import com.acn.holidayapi.exception.UnsupportedCountryException;
+
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.cache.annotation.Cacheable;
@@ -44,6 +46,10 @@ public class NagerDateApiClient {
             log.info("✅ Successfully fetched {} holidays for {}/{}", holidays.length, countryCode, year);
             return Arrays.asList(holidays);
 
+        } catch (WebClientResponseException.NotFound e) {
+            log.error("❌ Country '{}' not found in Nager.Date API", countryCode);
+
+            throw new UnsupportedCountryException(countryCode);
         } catch (WebClientResponseException e) {
             log.error("❌ API error for {}/{}: {} - {}",
                     countryCode, year, e.getStatusCode(), e.getResponseBodyAsString());

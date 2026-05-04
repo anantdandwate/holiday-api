@@ -21,9 +21,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class HolidayService {
     private final NagerDateApiClient nagerDateApiClient;
+    private final CountryValidationService countryValidationService;
 
     // 1. Given a country, return the last celebrated 3 holidays (date and name)
     public List<HolidayResponseDto> getLastThreeHolidays(String countryCode) {
+        countryValidationService.validateCountryCode(countryCode);
         LocalDate today = LocalDate.now();
         List<Holiday> allPastHolidays = new ArrayList<>();
 

@@ -33,22 +33,22 @@ public class WebClientConfig {
     @Bean
     public WebClient webClient() {
         log.info("🔧 Creating WebClient bean...");
-        
+
         SslContext sslContext = createSslContext();
-        
+
         HttpClient httpClient = HttpClient.create()
-            .secure(sslSpec -> sslSpec.sslContext(sslContext));
-        
+                .secure(sslSpec -> sslSpec.sslContext(sslContext));
+
         ExchangeStrategies strategies = ExchangeStrategies.builder()
-            .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(16 * 1024 * 1024))
-            .build();
-        
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(16 * 1024 * 1024))
+                .build();
+
         WebClient client = WebClient.builder()
-            .baseUrl(baseUrl)
-            .exchangeStrategies(strategies)
-            .clientConnector(new ReactorClientHttpConnector(httpClient))
-            .build();
-        
+                .baseUrl(baseUrl)
+                .exchangeStrategies(strategies)
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
+
         log.info("✅ WebClient bean created successfully with base URL: {}", baseUrl);
         return client;
     }
@@ -56,7 +56,7 @@ public class WebClientConfig {
     private SslContext createSslContext() {
         try {
             File truststoreFile = new File(truststorePath);
-            
+
             if (truststoreFile.exists()) {
                 log.info("📁 Loading custom truststore from: {}", truststoreFile.getAbsolutePath());
                 return buildCustomSslContext(truststoreFile);
@@ -66,7 +66,7 @@ public class WebClientConfig {
                 log.warn("⚠️ THIS IS FOR DEVELOPMENT ONLY!");
                 return buildInsecureSslContext();
             }
-            
+
         } catch (Exception e) {
             log.error("❌ Failed to load SSL context: {}", e.getMessage(), e);
             log.warn("⚠️ Falling back to INSECURE mode");
@@ -76,29 +76,28 @@ public class WebClientConfig {
 
     private SslContext buildCustomSslContext(File truststoreFile) throws Exception {
         KeyStore trustStore = KeyStore.getInstance("JKS");
-        
+
         try (FileInputStream fis = new FileInputStream(truststoreFile)) {
             trustStore.load(fis, truststorePassword.toCharArray());
         }
-        
+
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(
-            TrustManagerFactory.getDefaultAlgorithm()
-        );
+                TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
-        
+
         int certCount = trustStore.size();
         log.info("✅ Custom truststore loaded with {} certificates", certCount);
-        
+
         return SslContextBuilder.forClient()
-            .trustManager(tmf)
-            .build();
+                .trustManager(tmf)
+                .build();
     }
 
     private SslContext buildInsecureSslContext() {
         try {
             return SslContextBuilder.forClient()
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .build();
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .build();
         } catch (Exception e) {
             throw new RuntimeException("Failed to create SSL context", e);
         }

@@ -30,11 +30,16 @@ public class HolidayController {
     private final HolidayService holidayService;
 
     // 1. Given a country, return the last celebrated 3 holidays (date and name)
-    @Operation(summary = "Get last 3 holidays for a country", description = "Returns the last 3 holidays for the specified country")
+    @Operation(summary = "Get last 3 holidays for a country", description = "Returns the last 3 celebrated holidays for the specified country. "
+            +
+            "Only countries supported by Nager.Date API are valid.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved holidays")
+    @ApiResponse(responseCode = "404", description = "Country not supported")
+    @ApiResponse(responseCode = "400", description = "Invalid country code format")
     @GetMapping("/last3/{countryCode}")
     public ResponseEntity<List<HolidayResponseDto>> getLastThreeHolidays(
-            @Parameter(description = "ISO country code (e.g., US, GB, DE)", example = "US") @PathVariable("countryCode") @NotBlank(message = "Country code cannot be blank") @Size(min = Constants.MIN_COUNTRY_CODE_LENGTH, max = Constants.MAX_COUNTRY_CODE_LENGTH, message = "Country code must be 2 characters") String countryCode) {
+            @Parameter(description = "ISO 3166-1 alpha-2 country code (e.g., US, GB, DE)", example = "US") @PathVariable("countryCode") @NotBlank(message = "Country code cannot be blank") @Size(min = Constants.MIN_COUNTRY_CODE_LENGTH, max = Constants.MAX_COUNTRY_CODE_LENGTH, message = "Country code must be 2 characters") String countryCode) {
+
         log.info("Received request for last 3 holidays for country: {}", countryCode);
         List<HolidayResponseDto> holidays = holidayService.getLastThreeHolidays(countryCode);
         log.info("Returning {} holidays for country: {}", holidays.size(), countryCode);

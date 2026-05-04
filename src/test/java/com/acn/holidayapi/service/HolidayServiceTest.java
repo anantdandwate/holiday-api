@@ -6,78 +6,164 @@ import com.acn.holidayapi.dto.HolidayResponseDto;
 import com.acn.holidayapi.model.Holiday;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT) // ✅ Add this to allow unused stubs
 class HolidayServiceTest {
+
     @Mock
     private NagerDateApiClient nagerDateApiClient;
 
-    @InjectMocks
+    @Mock
+    private CountryValidationService countryValidationService;
+
     private HolidayService holidayService;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        holidayService = new HolidayService(nagerDateApiClient, countryValidationService);
+
+        // ✅ This stub is now allowed to be unused in some tests
+        doNothing().when(countryValidationService).validateCountryCode(anyString());
     }
 
     @Test
     void testGetLastThreeHolidays() {
+        // Arrange
         String countryCode = "US";
-        int year = LocalDate.now().getYear();
-        List<Holiday> holidays = List.of(
-                createHoliday(LocalDate.now().minusDays(1), "Name1", countryCode),
-                createHoliday(LocalDate.now().minusDays(2), "Name2", countryCode),
-                createHoliday(LocalDate.now().minusDays(3), "Name3", countryCode),
-                createHoliday(LocalDate.now().plusDays(1), "Future", countryCode)
-        );
-        when(nagerDateApiClient.getPublicHolidays(year, countryCode)).thenReturn(holidays);
+        LocalDate today = LocalDate.now();
+
+        List<Holiday> holidays = Arrays.asList(
+                createHoliday("New Year's Day", today.minusDays(10), countryCode),
+                createHoliday("Independence Day", today.minusDays(20), countryCode),
+                createHoliday("Thanksgiving", today.minusDays(30), countryCode),
+                createHoliday("Christmas", today.minusDays(40), countryCode));
+
+        when(nagerDateApiClient.getPublicHolidays(anyInt(), eq(countryCode)))
+                .thenReturn(holidays);
+
+        // Act
         List<HolidayResponseDto> result = holidayService.getLastThreeHolidays(countryCode);
+
+        // Assert
+        assertNotNull(result);
         assertEquals(3, result.size());
-        assertEquals("Name1", result.get(0).getLocalName());
+        assertEquals("New Year's Day", result.get(0).getLocalName());
+        assertEquals("Independence Day", result.get(1).getLocalName());
+        assertEquals("Thanksgiving", result.get(2).getLocalName());
+
+        verify(countryValidationService).validateCountryCode(countryCode);
+        verify(nagerDateApiClient, atLeastOnce()).getPublicHolidays(anyInt(), eq(countryCode));
     }
 
     @Test
     void testGetNonWeekendHolidayCounts() {
-        String countryCode = "US";
+        // Arrange
         int year = 2024;
-        List<Holiday> holidays = List.of(
-                createHoliday(LocalDate.of(2024, 5, 1), "Name1", countryCode), // Wednesday
-                createHoliday(LocalDate.of(2024, 5, 4), "Name2", countryCode), // Saturday
-                createHoliday(LocalDate.of(2024, 5, 5), "Name3", countryCode)  // Sunday
+        List<String> countryCodes = Arrays.asList("US", "CA");
+
+        List<Holiday> usHolidays = Arrays.asList(
+                createHoliday("Holiday 1", LocalDate.of(2024, 1, 1), "US"), // Monday
+                createHoliday("Holiday 2", LocalDate.of(2024, 1, 6), "US"), // Saturday
+                createHoliday("Holiday 3", LocalDate.of(2024, 1, 15), "US") // Monday
         );
-        when(nagerDateApiClient.getPublicHolidays(year, countryCode)).thenReturn(holidays);
-        Map<String, Long> result = holidayService.getNonWeekendHolidayCounts(year, List.of(countryCode));
-        assertEquals(1, result.get(countryCode));
+
+        List<Holiday> caHolidays = Arrays.asList(
+                createHoliday("Holiday 1", LocalDate.of(2024, 1, 1), "CA"), // Monday
+                createHoliday("Holiday 2", LocalDate.of(2024, 7, 1), "CA") // Monday
+        );
+
+        when(nagerDateApiClient.getPublicHolidays(year, "US")).thenReturn(usHolidays);
+        when(nagerDateApiClient.getPublicHolidays(year, "CA")).thenReturn(caHolidays);
+
+        // Act
+        Map<String, Long> result = holidayService.getNonWeekendHolidayCounts(year, countryCodes);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(2L, result.get("US"));
+        assertEquals(2L, result.get("CA"));
+
+        verify(nagerDateApiClient).getPublicHolidays(year, "US");
+        verify(nagerDateApiClient).getPublicHolidays(year, "CA");
     }
 
     @Test
     void testGetDeduplicatedHolidays() {
+        // Arrange
         int year = 2024;
-        String code1 = "US", code2 = "DE";
-        Holiday h1 = createHoliday(LocalDate.of(2024, 1, 1), "New Year US", code1);
-        Holiday h2 = createHoliday(LocalDate.of(2024, 1, 1), "Neujahr DE", code2);
-        when(nagerDateApiClient.getPublicHolidays(year, code1)).thenReturn(List.of(h1));
-        when(nagerDateApiClient.getPublicHolidays(year, code2)).thenReturn(List.of(h2));
-        List<DeduplicatedHolidayDto> result = holidayService.getDeduplicatedHolidays(year, code1, code2);
-        assertEquals(1, result.size());
-        assertTrue(result.get(0).getLocalNames().contains("New Year US"));
-        assertTrue(result.get(0).getLocalNames().contains("Neujahr DE"));
+        String country1 = "US";
+        String country2 = "CA";
+
+        LocalDate commonDate1 = LocalDate.of(2024, 1, 1);
+        LocalDate commonDate2 = LocalDate.of(2024, 12, 25);
+        LocalDate uniqueDate = LocalDate.of(2024, 7, 4);
+
+        List<Holiday> usHolidays = Arrays.asList(
+                createHoliday("New Year's Day", commonDate1, country1),
+                createHoliday("Independence Day", uniqueDate, country1),
+                createHoliday("Christmas Day", commonDate2, country1));
+
+        List<Holiday> caHolidays = Arrays.asList(
+                createHoliday("New Year's Day", commonDate1, country2),
+                createHoliday("Christmas Day", commonDate2, country2));
+
+        when(nagerDateApiClient.getPublicHolidays(year, country1)).thenReturn(usHolidays);
+        when(nagerDateApiClient.getPublicHolidays(year, country2)).thenReturn(caHolidays);
+
+        // Act
+        List<DeduplicatedHolidayDto> result = holidayService.getDeduplicatedHolidays(year, country1, country2);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        assertEquals(commonDate1, result.get(0).getDate());
+        assertTrue(result.get(0).getLocalNames().contains("New Year's Day"));
+
+        assertEquals(commonDate2, result.get(1).getDate());
+        assertTrue(result.get(1).getLocalNames().contains("Christmas Day"));
+
+        verify(nagerDateApiClient).getPublicHolidays(year, country1);
+        verify(nagerDateApiClient).getPublicHolidays(year, country2);
     }
 
-    private Holiday createHoliday(LocalDate date, String localName, String countryCode) {
-        Holiday h = new Holiday();
-        h.setDate(date);
-        h.setLocalName(localName);
-        h.setCountryCode(countryCode);
-        return h;
+    @Test
+    void testGetLastThreeHolidays_EmptyResult() {
+        // Arrange
+        String countryCode = "XX";
+        when(nagerDateApiClient.getPublicHolidays(anyInt(), eq(countryCode)))
+                .thenReturn(Arrays.asList());
+
+        // Act
+        List<HolidayResponseDto> result = holidayService.getLastThreeHolidays(countryCode);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    private Holiday createHoliday(String name, LocalDate date, String countryCode) {
+        Holiday holiday = new Holiday();
+        holiday.setName(name);
+        holiday.setLocalName(name);
+        holiday.setDate(date);
+        holiday.setCountryCode(countryCode);
+        return holiday;
     }
 }

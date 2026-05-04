@@ -6,8 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.validation.ConstraintViolationException;
@@ -76,6 +74,19 @@ public class GlobalExceptionHandler {
         body.put("error", "Constraint Violation");
         body.put("message", ex.getMessage());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UnsupportedCountryException.class)
+    public ResponseEntity<Map<String, Object>> handleUnsupportedCountry(UnsupportedCountryException ex) {
+        log.warn("⚠️ Unsupported country requested: {}", ex.getCountryCode());
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.NOT_FOUND.value());
+        body.put("error", "Unsupported Country");
+        body.put("message", ex.getMessage());
+        body.put("countryCode", ex.getCountryCode());
+        body.put("hint", "Please check https://date.nager.at/Country for supported countries");
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
