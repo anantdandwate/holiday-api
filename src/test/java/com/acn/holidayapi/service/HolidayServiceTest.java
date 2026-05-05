@@ -166,4 +166,42 @@ class HolidayServiceTest {
         holiday.setCountryCode(countryCode);
         return holiday;
     }
+
+    @Test
+    void testGetLastThreeHolidays_OnlyFutureHolidays() {
+        // Arrange
+        String countryCode = "US";
+        LocalDate today = LocalDate.now();
+        List<Holiday> futureHolidays = Arrays.asList(
+                createHoliday("Future Holiday 1", today.plusDays(10), countryCode),
+                createHoliday("Future Holiday 2", today.plusDays(20), countryCode));
+
+        when(nagerDateApiClient.getPublicHolidays(anyInt(), eq(countryCode)))
+                .thenReturn(futureHolidays);
+
+        // Act
+        List<HolidayResponseDto> result = holidayService.getLastThreeHolidays(countryCode);
+
+        // Assert
+        assertTrue(result.isEmpty(), "Should return empty list when all holidays are in the future");
+    }
+
+    @Test
+    void testGetDeduplicatedHolidays_NoCommonHolidays() {
+        // Arrange
+        int year = 2024;
+        List<Holiday> usHolidays = Arrays.asList(
+                createHoliday("Independence Day", LocalDate.of(2024, 7, 4), "US"));
+        List<Holiday> caHolidays = Arrays.asList(
+                createHoliday("Canada Day", LocalDate.of(2024, 7, 1), "CA"));
+
+        when(nagerDateApiClient.getPublicHolidays(year, "US")).thenReturn(usHolidays);
+        when(nagerDateApiClient.getPublicHolidays(year, "CA")).thenReturn(caHolidays);
+
+        // Act
+        List<DeduplicatedHolidayDto> result = holidayService.getDeduplicatedHolidays(year, "US", "CA");
+
+        // Assert
+        assertTrue(result.isEmpty(), "Should return empty list when no common holidays");
+    }
 }
