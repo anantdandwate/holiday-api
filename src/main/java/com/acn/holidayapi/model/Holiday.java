@@ -10,9 +10,9 @@ public class Holiday {
     private String localName;
     private String name;
     private String countryCode;
-    private boolean fixed;
+    private boolean fixed; // Deprecated in Nager.Date API but kept for compatibility
     private boolean global;
     private List<String> counties;
-    private Integer launchYear;
+    private Integer launchYear;// Deprecated in Nager.Date API but kept for compatibility
     private List<String> types;
 }

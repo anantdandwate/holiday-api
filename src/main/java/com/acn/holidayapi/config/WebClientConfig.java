@@ -44,7 +44,7 @@ public class WebClientConfig {
                 .build();
 
         WebClient client = WebClient.builder()
-                .baseUrl(baseUrl)
+                .baseUrl(baseUrl)// .baseUrl(baseUrl != null ? baseUrl : "https://date.nager.at/api/v3")
                 .exchangeStrategies(strategies)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();

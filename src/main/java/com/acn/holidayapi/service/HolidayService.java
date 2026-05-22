@@ -60,6 +60,13 @@ public class HolidayService {
     // 2. Given a year and country codes, for each country return a number of public
     // holidays not falling on weekends (sort in descending order)
     public Map<String, Long> getNonWeekendHolidayCounts(int year, List<String> countryCodes) {
+        List<String> invalidCodes = countryCodes.stream()
+                .filter(code -> !countryValidationService.isSupported(code))
+                .collect(Collectors.toList());
+
+        if (!invalidCodes.isEmpty()) {
+            throw new UnsupportedOperationException("Invalid countries: " + invalidCodes);
+        }
         Map<String, Long> result = new HashMap<>();
         for (String code : countryCodes) {
             List<Holiday> holidays = nagerDateApiClient.getPublicHolidays(year, code);

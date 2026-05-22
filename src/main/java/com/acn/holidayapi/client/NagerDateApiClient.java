@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +28,9 @@ public class NagerDateApiClient {
         log.info("✅ NagerDateApiClient initialized with configured WebClient");
     }
 
-    @Cacheable(value = "holidays", key = "#year + '-' + #countryCode")
+    @Cacheable(value = "holidays", key = "#year + '-' + #countryCode"
+    // condition = "#year < T(java.time.Year).now().getValue()"
+    )
     public List<Holiday> getPublicHolidays(int year, String countryCode) {
         try {
             log.debug("🌍 Fetching holidays for country: {}, year: {}", countryCode, year);
@@ -36,8 +39,20 @@ public class NagerDateApiClient {
                     .uri("/PublicHolidays/{year}/{countryCode}", year, countryCode)
                     .retrieve()
                     .bodyToMono(Holiday[].class)
+                    .retry(3) // Retry up to 3 times on failure
+                    .timeout(Duration.ofSeconds(5)) // 5 seconds timeout
                     .block();
-
+            /*
+             * .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+             * .maxBackoff(Duration.ofSeconds(10))
+             * .jitter(0.5) // Add randomness to spread retries
+             * .filter(throwable ->
+             * throwable instanceof TimeoutException ||
+             * (throwable instanceof WebClientResponseException &&
+             * ((WebClientResponseException) throwable).getStatusCode().is5xxServerError())
+             * ))
+             * .timeout(Duration.ofSeconds(5)) // 10× typical response time
+             */
             if (holidays == null || holidays.length == 0) {
                 log.warn("⚠️ No holidays found for {}/{}", countryCode, year);
                 return Collections.emptyList();
