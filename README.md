@@ -5,7 +5,7 @@
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-Assessment-blue)
 
-A production-ready REST API for retrieving public holiday information from the Nager.Date API. Built with Spring Boot and designed to handle corporate proxy environments with comprehensive caching, error handling, and performance optimization.
+A REST API for retrieving public holiday information with response caching, error handling, and profile-based configuration.
 
 ---
 
@@ -290,13 +290,12 @@ Logic: If both countries celebrate a holiday on the same date (e.g., December 25
 
 ### Performance Characteristics
 
-| Metric                 | Value        | Notes                      |
-| ---------------------- | ------------ | -------------------------- |
-| Cached Response Time   | < 10ms       | In-memory cache hit        |
-| Uncached Response Time | 200-500ms    | Depends on Nager.Date API  |
-| Memory Footprint       | 150-200MB    | Under normal load          |
-| Throughput             | ~100 req/sec | With caching enabled       |
-| Cache Hit Rate         | ~75-85%      | For typical usage patterns |
+| Metric                 | Value        | Notes                     |
+| ---------------------- | ------------ | ------------------------- |
+| Cached Response Time   | < 10ms       | In-memory cache hit       |
+| Uncached Response Time | 200-500ms    | Depends on Nager.Date API |
+| Memory Footprint       | 150-200MB    | Under normal load         |
+| Throughput             | ~100 req/sec | With caching enabled      |
 
 ### Algorithmic Complexity
 
